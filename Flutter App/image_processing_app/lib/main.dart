@@ -47,7 +47,7 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Future<void> sendImageToServer(String imagePath) async {
-    var uri = Uri.parse('http://yourserver.com/api/upload');
+    var uri = Uri.parse('http://localhost:8000/api/upload');
     var request = http.MultipartRequest('POST', uri)
       ..files.add(await http.MultipartFile.fromPath('image', imagePath));
     
