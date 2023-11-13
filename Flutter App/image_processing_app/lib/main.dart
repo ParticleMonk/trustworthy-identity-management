@@ -13,8 +13,8 @@ class CameraApp extends StatefulWidget {
 }
 
 class _CameraAppState extends State<CameraApp> {
-  CameraController controller;
-  List<CameraDescription> cameras;
+  late CameraController controller;
+  late List<CameraDescription> cameras;
 
   @override
   void initState() {
@@ -66,6 +66,9 @@ class _CameraAppState extends State<CameraApp> {
 
   @override
   Widget build(BuildContext context) {
+    if (!controller.value.isInitialized) {
+      return Center(child: CircularProgressIndicator());
+    }
     if (controller == null || !controller.value.isInitialized) {
       return Scaffold(
         body: Center(child: CircularProgressIndicator()),
