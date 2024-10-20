@@ -5,7 +5,7 @@ import json
 import pandas as pd
 
 # Set your OpenAI API key
-OPENAI_API_KEY =
+OPENAI_API_KEY = 
 
 
 
@@ -65,10 +65,10 @@ def openai_api_call(prompt):
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
         ],
-        response_fromat=Classifcations
+        response_format=Classifcations
     )
 
-    return completion.choices[0].message.content.strip()
+    return completion
 
 
 def openai_prompt_creating(title, classifications, classification_dict):
@@ -78,17 +78,14 @@ def openai_prompt_creating(title, classifications, classification_dict):
         # f" Have your response be in the format of 'Title - Classification : Classification_list'. "
         # f"For example, 'How to write a book - Writing Ideas : 'Writing Ideas', 'Software Projects'..."
     )
+    print('Title:', title)
+    print('Classifications:', classifications)
     response = openai_api_call(prompt)
     # parse the response from the openai api
-    response_list = response.split(":")
-    try:
-        title_classification = response_list[0].split("-")[1].strip()
 
-    except:
-        print('Error on line 84')
-        print(response_list)
-        exit()
-    title_classification = response_list[0].split("-")[1].strip()
+    title_classification = response.choices[0].message.parsed
+    print(title_classification)
+    exit()
     classification_list = response_list[1].split(",")
     classifications = [c.strip() for c in classification_list]
     classification_dict[title] = title_classification
