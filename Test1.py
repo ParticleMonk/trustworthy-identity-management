@@ -1,10 +1,11 @@
 # import openai library
 from openai import OpenAI
+from pydantic import BaseModel
 import json
 import pandas as pd
 
 # Set your OpenAI API key
-OPENAI_API_KEY = 
+OPENAI_API_KEY =
 
 
 
@@ -52,15 +53,19 @@ def print_first_item_in_column(df):
 def print_first_5_title_entries(df):
     print(df["title"].head())
 
-
+class Classifcations(BaseModel):
+    title: str
+    classification: str
+    classifications: list[str]
 def openai_api_call(prompt):
     client = OpenAI(api_key=OPENAI_API_KEY)
-    completion = client.chat.completions.create(
+    completion = client.beta.chat.completions.parse(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
-        ]
+        ],
+        response_fromat=Classifcations
     )
 
     return completion.choices[0].message.content.strip()
@@ -69,9 +74,9 @@ def openai_api_call(prompt):
 def openai_prompt_creating(title, classifications, classification_dict):
     prompt = (
         f"Does the title '{title}' belong mostly in one of the following classifications: {classifications}? If not, please provide a new classification for the title"
-        f"and add that new classification to the list of classifications."
-        f" Have your response be in the format of 'Title - Classification : Classification_list'. "
-        f"For example, 'How to write a book - Writing Ideas : 'Writing Ideas', 'Software Projects'..."
+        # f"and add that new classification to the list of classifications."
+        # f" Have your response be in the format of 'Title - Classification : Classification_list'. "
+        # f"For example, 'How to write a book - Writing Ideas : 'Writing Ideas', 'Software Projects'..."
     )
     response = openai_api_call(prompt)
     # parse the response from the openai api
