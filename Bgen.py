@@ -91,7 +91,6 @@ if __name__ == "__main__":
     OpenAI.api_key = os.environ['OPENAI_API_KEY']
 
     response_file: str = 'response.json'
-    response_full = None
     arguments: dict = {}
 
     'If there is an appropriate response file, load it'
@@ -99,7 +98,7 @@ if __name__ == "__main__":
         arguments = load_response_file(filename=response_file)
     else:
         'Otherwise get a chat completion response from the API ($$)'
-        response_full: Optional[ChatCompletion] = group_conversation_titles(json_file_path='titles.json')
+        response_full: ChatCompletion = group_conversation_titles(json_file_path='titles.json')
         arguments = json.loads(response_full.choices[0].message.function_call.arguments)
         save_response_file(arguments, response_file)
 
