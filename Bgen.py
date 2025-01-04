@@ -2,16 +2,13 @@ import json
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 import pandas as pd
 import os
 import datetime
 
-import sys
-import string
 
-
-# Pydantic model for structured output from the API
+# Pydantic models for structured output from the API
 class GroupedTitles(BaseModel):
     group_name: str = Field(description="The name of the group the titles belong to.")
     titles: List[str] = Field(description="List of titles belonging to the group.")
@@ -41,9 +38,10 @@ def group_conversation_titles(json_file_path):
         print('Could not load Titles JSON, check the filename/location.')
         return None
 
-        # Construct the prompt for the OpenAI API
-        # Call the OpenAI API
+    # Construct the prompt for the OpenAI API
     prompt = f"Group the following conversation titles into meaningful categories based on their content:\n\n{', '.join(titles)}"
+
+    # Call the OpenAI API
     return client.chat.completions.create(
         model="gpt-4o-mini",  # Or gpt-3.5-turbo, depending on your access
         messages=[
@@ -93,19 +91,19 @@ if __name__ == "__main__":
     response_file: str = 'response.json'
     arguments: dict = {}
 
-    'If there is an appropriate response file, load it'
+    # If there is an appropriate response file, load it
     if check_for_saved_arguments_file(filename=response_file):
         arguments = load_response_file(filename=response_file)
     else:
-        'Otherwise get a chat completion response from the API ($$)'
+        # Otherwise get a chat completion response from the API ($$)
         response_full: ChatCompletion = group_conversation_titles(json_file_path='titles.json')
         arguments = json.loads(response_full.choices[0].message.function_call.arguments)
         save_response_file(arguments, response_file)
 
-    'Format response through Classifications Class'
-    # grouped_data = Classifications(**arguments)
+    # removed - # Format response through Classifications Class
+    # removed - grouped_data = Classifications(**arguments)
 
-    'Put into a DataFrame'
+    # Put into a DataFrame
     df1: pd.DataFrame = pd.json_normalize(arguments['list_of_groups'])
     df2: pd.DataFrame = pd.json_normalize(arguments['list_of_groups']).explode('titles')
 
@@ -115,7 +113,7 @@ if __name__ == "__main__":
     print(df2)
 
 
-# Notes for working with JSON -> DataFrame
+# NOTES FOR WORKING WITH JSON -> DATAFRAME
 # Extract and parse the structured output
 
 # Create a Pandas DataFrame from the structured output
