@@ -16,6 +16,10 @@ class GroupedTitles(BaseModel):
 
 class Classifications(BaseModel):
     list_of_groups: List[GroupedTitles] = Field(description="A list of the group names.")
+
+    # dict_of_grouped_titles: {str, List[str]} =
+    # (Field(description="A dict where keys are group names and values are lists of titles that belong in the group."))
+
     # classifications: List[str]
 
 
@@ -29,42 +33,39 @@ def group_conversation_titles(json_file_path):
     Returns:
         A completion from the API
     """
-
+    # FIXME: Send titles in smaller groups via a callback (yet to be written) and put in loop to auto-call till end
     try:
         with open(json_file_path, "r") as f:
-            data = json.load(f)
-        titles = [v for v in data.values()]
+            data: dict = json.load(f)
+        titles = [v for k, v in data.items() if int(k) < 1000]
     except IOError:
         print('Could not load Titles JSON, check the filename/location.')
         return None
 
     # Construct the prompt for the OpenAI API
-    prompt = f"Group the following conversation titles into meaningful categories based on their content:\n\n{', '.join(titles)}"
+    prompt = (f"Titles:"
+              f"\n\n'''{', '.join(titles)}'''***END OF TITLES***")
+    dev_message = (f"You are a helpful assistant that iterates thru a list of titles and groups them into "
+                   f"meaningful categories. ")
 
     # Call the OpenAI API
-    return client.chat.completions.create(
-        model="gpt-4o-mini",  # Or gpt-3.5-turbo, depending on your access
+    return client.beta.chat.completions.parse(
+        model="gpt-4o-mini",
         messages=[
-            {"role": "developer", "content": "You are a helpful assistant that groups items into categories."},
+            {"role": "developer", "content": dev_message},
             {"role": "user", "content": prompt}
         ],
-        functions=[
-            {
-                "name": "group_titles",
-                "description": "Groups conversation titles into categories.",
-                "parameters": Classifications.schema()
-            }
-        ],
-        function_call={"name": "group_titles"}
+        response_format=Classifications,
+        #temperature=.25
     )
 
 
 def check_for_saved_arguments_file(filename):
+    # FIXME: Mod_time/Midnight comparison needs to be tested
     dt = datetime.datetime
-    temp: bool = (os.path.exists(filename)
-                  and os.stat(filename).st_size > 0
-                  and os.stat(filename).st_mtime >= int(dt.combine(dt.utcnow().date(), datetime.time()).timestamp()))
-    return temp
+    return (os.path.exists(filename)
+            and os.stat(filename).st_size > 0)
+    # and os.stat(filename).st_mtime >= int(dt.combine(dt.utcnow().date(), datetime.time()).timestamp()))
 
 
 def save_response_file(args, filename):
@@ -78,10 +79,17 @@ def save_response_file(args, filename):
 
 
 def load_response_file(filename: str) -> dict:
-    with open(filename, "r") as fin:
-        print("Reading saved response.. .. ..")
-        print("Response file successfully loaded.")
-        return json.load(fin)
+    print("Opening saved response file.. .. ..")
+    try:
+        with open(filename, "r") as fin:
+            print("Reading saved response.. .. ..")
+            return json.load(fin)
+    except IOError or UnboundLocalError:
+        fin = False
+        print('Error while loading file!!')
+    finally:
+        if fin:
+            print("Response file successfully loaded.")
 
 
 if __name__ == "__main__":
@@ -92,12 +100,20 @@ if __name__ == "__main__":
     arguments: dict = {}
 
     # If there is an appropriate response file, load it
-    if check_for_saved_arguments_file(filename=response_file):
+    if check_for_saved_arguments_file(filename=response_file) and True: #FIXME: flag to run API call every time
         arguments = load_response_file(filename=response_file)
     else:
         # Otherwise get a chat completion response from the API ($$)
         response_full: ChatCompletion = group_conversation_titles(json_file_path='titles.json')
-        arguments = json.loads(response_full.choices[0].message.function_call.arguments)
+
+        # Debugging FIXME: Remove after debugging
+        # print(response_full)
+        for i in response_full.usage:
+            print(i)
+        print(response_full.choices[0].finish_reason)
+
+        arguments = json.loads(response_full.choices[0].message.content)
+
         save_response_file(arguments, response_file)
 
     # removed - # Format response through Classifications Class
@@ -107,11 +123,15 @@ if __name__ == "__main__":
     df1: pd.DataFrame = pd.json_normalize(arguments['list_of_groups'])
     df2: pd.DataFrame = pd.json_normalize(arguments['list_of_groups']).explode('titles')
 
-    'Print from DataFrame'
-    print(df1)
-    print('\n\n')
-    print(df2)
+    # Playing with Classifications with a dict
+    # df1: pd.DataFrame = pd.json_normalize(arguments)
+    # df2: pd.DataFrame = pd.json_normalize(arguments).explode('titles')
 
+    # Print from DataFrame
+    if False:
+        print(df1)
+        print('\n\n')
+        print(df2)
 
 # NOTES FOR WORKING WITH JSON -> DATAFRAME
 # Extract and parse the structured output
